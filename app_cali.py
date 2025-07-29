@@ -16,13 +16,6 @@ def inicializar_excel():
         ws.append(['Orden de Servicio', 'Fecha', 'Equipo', 'Certificado', 'Cliente', 'Sede/Servicio',
                    'Conformidad', 'Ejecutado por', 'Firmado por', 'Avalado por'])
         wb.save(archivo_excel)
-    else:
-        wb = openpyxl.load_workbook(archivo_excel)
-        ws = wb.active
-        if ws.max_row < 2:
-            ws.append(['Orden de Servicio', 'Fecha', 'Equipo', 'Certificado', 'Cliente', 'Sede/Servicio',
-                       'Conformidad', 'Ejecutado por', 'Firmado por', 'Avalado por'])
-            wb.save(archivo_excel)
 
 # Determinar letra del equipo
 def determinar_letra_equipo(equipo):
@@ -104,11 +97,10 @@ if st.button("Guardar y Subir a Google Drive"):
     elif not orden or not cliente:
         st.error("Orden de Servicio y Cliente son obligatorios")
     else:
-        wb = openpyxl.load_workbook(archivo_excel)
+        wb = openpyxl.Workbook()
         ws = wb.active
-
-        # Limpiar filas desde la fila 2
-        ws.delete_rows(2, ws.max_row)
+        ws.append(['Orden de Servicio', 'Fecha', 'Equipo', 'Certificado', 'Cliente', 'Sede/Servicio',
+                   'Conformidad', 'Ejecutado por', 'Firmado por', 'Avalado por'])
 
         certificados_asignados = []
         consecutivos = {'E': consecutivo_E_manual, 'B': consecutivo_B_manual}
@@ -136,7 +128,6 @@ if st.button("Guardar y Subir a Google Drive"):
                 consecutivos[letra] += 1
 
         wb.save(archivo_excel)
-        wb.close()
         st.success(f"Certificados asignados: {', '.join(certificados_asignados)}")
         subir_a_drive_oauth(archivo_excel)
         st.session_state.equipos = []
