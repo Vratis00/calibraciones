@@ -53,8 +53,8 @@ def determinar_letra_equipo(equipo):
 # Subir archivo a Google Drive usando OAuth 2.0 de Usuario
 def subir_a_drive_oauth(nombre_archivo):
     SCOPES = ['https://www.googleapis.com/auth/drive.file']
-
-    flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
+    
+    flow = InstalledAppFlow.from_client_config(st.secrets["google_oauth"], SCOPES)    
     creds = flow.run_local_server(port=0)
 
     service = build('drive', 'v3', credentials=creds)
