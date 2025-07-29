@@ -24,21 +24,6 @@ def inicializar_excel():
                        'Conformidad', 'Ejecutado por', 'Firmado por', 'Avalado por'])
             wb.save(archivo_excel)
 
-# Obtener último certificado
-def obtener_ultimo_certificado(letra):
-    wb = openpyxl.load_workbook(archivo_excel)
-    ws = wb.active
-    numeros = []
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        cert = row[3]
-        if cert and cert.startswith(letra):
-            num = int(cert.split('-')[-1])
-            numeros.append(num)
-    wb.close()
-    if not numeros:
-        return 1588 if letra == 'E' else 870
-    return max(numeros)
-
 # Determinar letra del equipo
 def determinar_letra_equipo(equipo):
     equipos_E = ["Tensiometro Digital", "Tensiometro Adulto", "Tensiometro Pediátrico"]
@@ -73,6 +58,9 @@ inicializar_excel()
 
 # Interfaz de usuario en Streamlit
 st.title("Asignación de Stickers de Calibración")
+
+# NUEVA CASILLA: Número Consecutivo Inicial Manual
+consecutivo_manual = st.number_input("Número de Consecutivo Inicial (Manual)", min_value=1, step=1, value=1588)
 
 modo_asignacion = st.checkbox("Modo Asignación de Stickers (simplificado)")
 
@@ -131,13 +119,15 @@ if st.button("Guardar y Subir a Google Drive"):
                 st.stop()
             letras_equipos[letra].append((equipo, cantidad))
 
+        # USAR EL CONSECUTIVO MANUAL COMO BASE
+        consecutivo_actual = consecutivo_manual
+
         for letra, lista in letras_equipos.items():
             if not lista:
                 continue
-            ultimo = obtener_ultimo_certificado(letra)
             for equipo, cantidad in lista:
                 for i in range(cantidad):
-                    nuevo_num = ultimo + 1
+                    nuevo_num = consecutivo_actual
                     cert_num = f"{letra}-25-{nuevo_num}"
                     ws.append([
                         orden,
@@ -152,10 +142,19 @@ if st.button("Guardar y Subir a Google Drive"):
                         "Vratislav Cala" if not modo_asignacion else ''
                     ])
                     certificados_asignados.append(cert_num)
-                    ultimo += 1
+                    consecutivo_actual += 1
 
         wb.save(archivo_excel)
         wb.close()
         st.success(f"Certificados asignados: {', '.join(certificados_asignados)}")
         subir_a_drive_oauth(archivo_excel)
         st.session_state.equipos = []
+
+# BOTÓN DE DESCARGA DIRECTA DEL EXCEL
+with open(archivo_excel, "rb") as file:
+    btn = st.download_button(
+        label="📥 Descargar Excel",
+        data=file,
+        file_name=archivo_excel,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
