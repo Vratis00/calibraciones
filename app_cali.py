@@ -2,20 +2,16 @@ import streamlit as st
 import openpyxl
 import os
 from datetime import date
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
 
 archivo_excel = 'calibraciones.xlsx'
 
 # Inicializar Excel
 def inicializar_excel():
-    if not os.path.exists(archivo_excel):
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.append(['Orden de Servicio', 'Fecha', 'Equipo', 'Certificado', 'Cliente', 'Sede/Servicio',
-                   'Conformidad', 'Ejecutado por', 'Firmado por', 'Avalado por'])
-        wb.save(archivo_excel)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(['Orden de Servicio', 'Fecha', 'Equipo', 'Certificado', 'Cliente', 'Sede/Servicio',
+               'Conformidad', 'Ejecutado por', 'Firmado por', 'Avalado por'])
+    wb.save(archivo_excel)
 
 # Determinar letra del equipo
 def determinar_letra_equipo(equipo):
@@ -27,24 +23,6 @@ def determinar_letra_equipo(equipo):
         return 'B'
     else:
         return 'X'
-
-# Subir archivo a Google Drive usando OAuth 2.0 de Usuario
-def subir_a_drive_oauth(nombre_archivo):
-    SCOPES = ['https://www.googleapis.com/auth/drive.file']
-
-    flow = InstalledAppFlow.from_client_config(st.secrets["google_oauth"], SCOPES)
-    creds = flow.run_local_server(port=0)
-
-    service = build('drive', 'v3', credentials=creds)
-
-    file_metadata = {
-        'name': nombre_archivo
-    }
-
-    media = MediaFileUpload(nombre_archivo, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-    file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    st.success(f"Archivo subido a Google Drive. ID: {file.get('id')}")
 
 # Inicialización
 inicializar_excel()
@@ -91,7 +69,7 @@ st.write("### Equipos añadidos:")
 for eq, cant in st.session_state.equipos:
     st.write(f"{cant} x {eq}")
 
-if st.button("Guardar y Subir a Google Drive"):
+if st.button("Guardar Datos en Excel"):
     if not st.session_state.equipos:
         st.error("Debes agregar al menos un equipo")
     elif not orden or not cliente:
@@ -129,8 +107,11 @@ if st.button("Guardar y Subir a Google Drive"):
 
         wb.save(archivo_excel)
         st.success(f"Certificados asignados: {', '.join(certificados_asignados)}")
-        subir_a_drive_oauth(archivo_excel)
-        st.session_state.equipos = []
+
+if st.button("🗑️ Borrar Todo"):
+    inicializar_excel()
+    st.session_state.equipos = []
+    st.success("Datos eliminados y archivo reiniciado.")
 
 # BOTÓN DE DESCARGA DIRECTA DEL EXCEL
 if os.path.exists(archivo_excel):
@@ -141,3 +122,4 @@ if os.path.exists(archivo_excel):
             file_name=archivo_excel,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
