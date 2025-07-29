@@ -4,6 +4,7 @@ import os
 from datetime import date
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 archivo_excel = 'calibraciones.xlsx'
 
@@ -49,13 +50,12 @@ def determinar_letra_equipo(equipo):
     else:
         return 'X'
 
-# Subir archivo a Google Drive usando Service Account
+# Subir archivo a Google Drive usando Secrets
 def subir_a_drive_service_account(nombre_archivo):
-    SCOPES = ['https://www.googleapis.com/auth/drive.file']
-    SERVICE_ACCOUNT_FILE = 'service_account.json'
+    SCOPES = ['https://www.googleapis.com/auth/drive']
 
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=SCOPES)
 
     service = build('drive', 'v3', credentials=credentials)
 
@@ -64,8 +64,6 @@ def subir_a_drive_service_account(nombre_archivo):
 
     file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     st.success(f"Archivo subido a Google Drive. ID: {file.get('id')}")
-
-from googleapiclient.http import MediaFileUpload
 
 # Inicialización
 inicializar_excel()
