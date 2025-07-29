@@ -2,7 +2,7 @@ import streamlit as st
 import openpyxl
 import os
 from datetime import date
-from google.oauth2 import service_account
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -50,21 +50,17 @@ def determinar_letra_equipo(equipo):
     else:
         return 'X'
 
-# Subir archivo a Google Drive usando Service Account
-def subir_a_drive_service_account(nombre_archivo):
-    SCOPES = ['https://www.googleapis.com/auth/drive']
+# Subir archivo a Google Drive usando OAuth 2.0 de Usuario
+def subir_a_drive_oauth(nombre_archivo):
+    SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
-    credentials = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], scopes=SCOPES)
+    flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
+    creds = flow.run_local_server(port=0)
 
-    service = build('drive', 'v3', credentials=credentials)
-
-    # Aquí debes poner el ID de la carpeta de Google Drive donde compartiste con el Service Account
-    FOLDER_ID = '1g1Z3q0-H6ZPFx840goQq4lRh3dtddWvx'  # <- Reemplaza esto por tu folder ID real
+    service = build('drive', 'v3', credentials=creds)
 
     file_metadata = {
-        'name': nombre_archivo,
-        'parents': [FOLDER_ID]
+        'name': nombre_archivo
     }
 
     media = MediaFileUpload(nombre_archivo, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -161,5 +157,5 @@ if st.button("Guardar y Subir a Google Drive"):
         wb.save(archivo_excel)
         wb.close()
         st.success(f"Certificados asignados: {', '.join(certificados_asignados)}")
-        subir_a_drive_service_account(archivo_excel)
+        subir_a_drive_oauth(archivo_excel)
         st.session_state.equipos = []
