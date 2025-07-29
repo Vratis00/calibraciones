@@ -50,7 +50,7 @@ def determinar_letra_equipo(equipo):
     else:
         return 'X'
 
-# Subir archivo a Google Drive usando Secrets
+# Subir archivo a Google Drive usando Service Account
 def subir_a_drive_service_account(nombre_archivo):
     SCOPES = ['https://www.googleapis.com/auth/drive']
 
@@ -59,7 +59,14 @@ def subir_a_drive_service_account(nombre_archivo):
 
     service = build('drive', 'v3', credentials=credentials)
 
-    file_metadata = {'name': nombre_archivo}
+    # Aquí debes poner el ID de la carpeta de Google Drive donde compartiste con el Service Account
+    FOLDER_ID = '1g1Z3q0-H6ZPFx840goQq4lRh3dtddWvx'  # <- Reemplaza esto por tu folder ID real
+
+    file_metadata = {
+        'name': nombre_archivo,
+        'parents': [FOLDER_ID]
+    }
+
     media = MediaFileUpload(nombre_archivo, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
     file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
@@ -115,7 +122,7 @@ if st.button("Guardar y Subir a Google Drive"):
         wb = openpyxl.load_workbook(archivo_excel)
         ws = wb.active
 
-        # Limpiar filas
+        # Limpiar filas desde la fila 2
         ws.delete_rows(2, ws.max_row)
 
         certificados_asignados = []
