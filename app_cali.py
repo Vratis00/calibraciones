@@ -38,8 +38,8 @@ def determinar_letra_equipo(equipo):
 # Subir archivo a Google Drive usando OAuth 2.0 de Usuario
 def subir_a_drive_oauth(nombre_archivo):
     SCOPES = ['https://www.googleapis.com/auth/drive.file']
-    
-    flow = InstalledAppFlow.from_client_config(st.secrets["google_oauth"], SCOPES)    
+
+    flow = InstalledAppFlow.from_client_config(st.secrets["google_oauth"], SCOPES)
     creds = flow.run_local_server(port=0)
 
     service = build('drive', 'v3', credentials=creds)
@@ -59,8 +59,9 @@ inicializar_excel()
 # Interfaz de usuario en Streamlit
 st.title("Asignación de Stickers de Calibración")
 
-# NUEVA CASILLA: Número Consecutivo Inicial Manual
-consecutivo_manual = st.number_input("Número de Consecutivo Inicial (Manual)", min_value=1, step=1, value=1588)
+# Casillas para ingresar los consecutivos iniciales manualmente
+consecutivo_E_manual = st.number_input("Número de Consecutivo Inicial TENSIÓMETROS", min_value=1, step=1, value=1899)
+consecutivo_B_manual = st.number_input("Número de Consecutivo Inicial BALANZAS", min_value=1, step=1, value=871)
 
 modo_asignacion = st.checkbox("Modo Asignación de Stickers (simplificado)")
 
@@ -110,39 +111,29 @@ if st.button("Guardar y Subir a Google Drive"):
         ws.delete_rows(2, ws.max_row)
 
         certificados_asignados = []
-        letras_equipos = {'E': [], 'B': []}
+        consecutivos = {'E': consecutivo_E_manual, 'B': consecutivo_B_manual}
 
         for equipo, cantidad in st.session_state.equipos:
             letra = determinar_letra_equipo(equipo)
             if letra == 'X':
                 st.error(f"Equipo inválido: {equipo}")
                 st.stop()
-            letras_equipos[letra].append((equipo, cantidad))
-
-        # USAR EL CONSECUTIVO MANUAL COMO BASE
-        consecutivo_actual = consecutivo_manual
-
-        for letra, lista in letras_equipos.items():
-            if not lista:
-                continue
-            for equipo, cantidad in lista:
-                for i in range(cantidad):
-                    nuevo_num = consecutivo_actual
-                    cert_num = f"{letra}-25-{nuevo_num}"
-                    ws.append([
-                        orden,
-                        fecha.strftime('%Y-%m-%d'),
-                        equipo,
-                        cert_num,
-                        cliente,
-                        sede if not modo_asignacion else '',
-                        conformidad if not modo_asignacion else '',
-                        ejecutado if not modo_asignacion else '',
-                        "Angie Rodriguez" if not modo_asignacion else '',
-                        "Vratislav Cala" if not modo_asignacion else ''
-                    ])
-                    certificados_asignados.append(cert_num)
-                    consecutivo_actual += 1
+            for i in range(cantidad):
+                cert_num = f"{letra}-25-{consecutivos[letra]}"
+                ws.append([
+                    orden,
+                    fecha.strftime('%Y-%m-%d'),
+                    equipo,
+                    cert_num,
+                    cliente,
+                    sede if not modo_asignacion else '',
+                    conformidad if not modo_asignacion else '',
+                    ejecutado if not modo_asignacion else '',
+                    "Angie Rodriguez" if not modo_asignacion else '',
+                    "Vratislav Cala" if not modo_asignacion else ''
+                ])
+                certificados_asignados.append(cert_num)
+                consecutivos[letra] += 1
 
         wb.save(archivo_excel)
         wb.close()
@@ -151,10 +142,11 @@ if st.button("Guardar y Subir a Google Drive"):
         st.session_state.equipos = []
 
 # BOTÓN DE DESCARGA DIRECTA DEL EXCEL
-with open(archivo_excel, "rb") as file:
-    btn = st.download_button(
-        label="📥 Descargar Excel",
-        data=file,
-        file_name=archivo_excel,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+if os.path.exists(archivo_excel):
+    with open(archivo_excel, "rb") as file:
+        st.download_button(
+            label="📥 Descargar Excel",
+            data=file,
+            file_name=archivo_excel,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
