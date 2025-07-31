@@ -21,7 +21,8 @@ def inicializar_db():
                     conformidad TEXT,
                     ejecutado TEXT,
                     firmado TEXT,
-                    avalado TEXT
+                    avalado TEXT,
+                    tipo TEXT
                 )''')
     conn.commit()
     conn.close()
@@ -72,15 +73,17 @@ equipo = st.selectbox("Tipo de Equipo", [
 ])
 cantidad = st.number_input("Cantidad", min_value=1, step=1)
 
+tipo_equipo = st.selectbox("Tipo de Certificado", ["Esfigmomanómetro", "Balanza"])
+
 if 'equipos' not in st.session_state:
     st.session_state.equipos = []
 
 if st.button("Agregar Equipo"):
-    st.session_state.equipos.append((equipo, cantidad))
+    st.session_state.equipos.append((equipo, cantidad, tipo_equipo))
 
 st.write("### Equipos añadidos:")
-for eq, cant in st.session_state.equipos:
-    st.write(f"{cant} x {eq}")
+for eq, cant, tipo in st.session_state.equipos:
+    st.write(f"{cant} x {eq} ({tipo})")
 
 if st.button("Guardar Datos en Base de Datos"):
     if not st.session_state.equipos:
@@ -94,7 +97,7 @@ if st.button("Guardar Datos en Base de Datos"):
         certificados_asignados = []
         consecutivos = {'E': consecutivo_E_manual, 'B': consecutivo_B_manual}
 
-        for equipo, cantidad in st.session_state.equipos:
+        for equipo, cantidad, tipo in st.session_state.equipos:
             letra = determinar_letra_equipo(equipo)
             if letra == 'X':
                 st.error(f"Equipo inválido: {equipo}")
@@ -102,8 +105,8 @@ if st.button("Guardar Datos en Base de Datos"):
             for i in range(cantidad):
                 cert_num = f"{letra}-25-{consecutivos[letra]}"
                 c.execute("""
-                    INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado, tipo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     orden,
                     fecha.strftime('%Y-%m-%d'),
@@ -114,7 +117,8 @@ if st.button("Guardar Datos en Base de Datos"):
                     conformidad if not modo_asignacion else '',
                     ejecutado if not modo_asignacion else '',
                     "Angie Rodriguez" if not modo_asignacion else '',
-                    "Vratislav Cala" if not modo_asignacion else ''
+                    "Vratislav Cala" if not modo_asignacion else '',
+                    tipo
                 ))
                 certificados_asignados.append(cert_num)
                 consecutivos[letra] += 1
@@ -123,6 +127,41 @@ if st.button("Guardar Datos en Base de Datos"):
         conn.close()
         st.success(f"Certificados asignados: {', '.join(certificados_asignados)}")
         st.session_state.equipos = []
+
+# Cargar datos desde un archivo Excel
+datos_excel = st.file_uploader("Subir Excel para cargar a la base de datos", type=['xlsx'])
+
+if datos_excel is not None:
+    tipo_seleccionado = st.selectbox("Tipo de datos a importar", ["Balanza", "Esfigmomanómetro"])
+
+    if st.button("Cargar Datos desde Excel"):
+        df = pd.read_excel(datos_excel)
+        # Suponiendo que el Excel no trae columna "tipo", la añadimos
+        df['tipo'] = tipo_seleccionado
+
+        conn = sqlite3.connect(archivo_db)
+        c = conn.cursor()
+
+        for _, row in df.iterrows():
+            c.execute("""
+                INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado, tipo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                row['N° ORDEN DE SERVICIO'],
+                row['FECHA'],
+                row['N° CERTIFICADO'],
+                row['EQUIPO'],
+                row['CLIENTE'],
+                row['SEDE O SERVICIO'],
+                row['CONFORMIDAD'],
+                row['EJECUTADO POR'],
+                row['FIRMADO  POR'],
+                row['AVALADO POR'],
+                row['tipo']
+            ))
+        conn.commit()
+        conn.close()
+        st.success("Datos importados correctamente desde el Excel")
 
 if st.button("🗑️ Borrar Todo"):
     conn = sqlite3.connect(archivo_db)
@@ -146,10 +185,8 @@ if os.path.exists(archivo_db):
 # MOSTRAR REGISTROS DE LA BASE DE DATOS EN TABLA
 if st.button("📊 Visualizar Base de Datos"):
     conn = sqlite3.connect(archivo_db)
-    df = pd.read_sql_query("SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO  POR', avalado AS 'AVALADO POR' FROM calibraciones", conn)
+    df = pd.read_sql_query("SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO  POR', avalado AS 'AVALADO POR', tipo AS TIPO FROM calibraciones", conn)
     conn.close()
 
     st.dataframe(df)
     st.success("Registros cargados exitosamente")
-
-
