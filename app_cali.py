@@ -136,7 +136,26 @@ if datos_excel is not None:
 
     if st.button("Cargar Datos desde Excel"):
         df = pd.read_excel(datos_excel)
-        # Suponiendo que el Excel no trae columna "tipo", la añadimos
+
+        # Normalizar nombres de columnas
+        df.columns = df.columns.str.strip().str.upper()
+        
+        # Mapeo de nombres esperados
+        df = df.rename(columns={
+            'ITEM': 'ITEM',
+            'N° ORDEN DE SERVICIO': 'ORDEN',
+            'FECHA': 'FECHA',
+            'N° CERTIFICADO': 'CERTIFICADO',
+            'EQUIPO': 'EQUIPO',
+            'CLIENTE': 'CLIENTE',
+            'SEDE O SERVICIO': 'SEDE',
+            'CONFORMIDAD': 'CONFORMIDAD',
+            'EJECUTADO POR': 'EJECUTADO',
+            'FIRMADO  POR': 'FIRMADO',
+            'AVALADO POR': 'AVALADO'
+        })
+
+        # Añadimos la columna tipo
         df['tipo'] = tipo_seleccionado
 
         conn = sqlite3.connect(archivo_db)
@@ -147,16 +166,16 @@ if datos_excel is not None:
                 INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado, tipo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                row['N° ORDEN DE SERVICIO'],
+                row['ORDEN'],
                 row['FECHA'],
-                row['N° CERTIFICADO'],
+                row['CERTIFICADO'],
                 row['EQUIPO'],
                 row['CLIENTE'],
-                row['SEDE O SERVICIO'],
+                row['SEDE'],
                 row['CONFORMIDAD'],
-                row['EJECUTADO POR'],
-                row['FIRMADO  POR'],
-                row['AVALADO POR'],
+                row['EJECUTADO'],
+                row['FIRMADO'],
+                row['AVALADO'],
                 row['tipo']
             ))
         conn.commit()
