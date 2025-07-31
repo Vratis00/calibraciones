@@ -215,6 +215,15 @@ if os.path.exists(archivo_db):
             mime="application/x-sqlite3"
         )
 
+# VISUALIZAR BASE DE DATOS COMPLETA
+st.markdown("---")
+st.subheader("📋 Visualizar Base de Datos Completa")
+if st.button("Mostrar Todos los Registros"):
+    conn = sqlite3.connect(archivo_db)
+    df_all = pd.read_sql_query("SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO POR', avalado AS 'AVALADO POR', tipo AS TIPO FROM calibraciones", conn)
+    conn.close()
+    st.dataframe(df_all)
+
 # FILTRAR Y VISUALIZAR REGISTROS
 st.markdown("---")
 st.subheader("📊 Filtro de Base de Datos")
@@ -269,4 +278,3 @@ if st.button("Aplicar Filtro y Mostrar"):
             file_name="reporte.pdf",
             mime="application/pdf"
         )
-
