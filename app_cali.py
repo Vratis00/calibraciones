@@ -135,13 +135,11 @@ if datos_excel is not None:
     tipo_seleccionado = st.selectbox("Tipo de datos a importar", ["Balanza", "Esfigmomanómetro"])
 
     if st.button("Cargar Datos desde Excel"):
-        df = pd.read_excel(datos_excel)
-        df = df.fillna('').astype(str)  # <- Esto convierte NaN a '' y todo a string
+        df = pd.read_excel(datos_excel, index_col=None)
+        df = df.fillna('').astype(str)
 
-        # Normalizar nombres de columnas (eliminar espacios dobles y convertir a mayúsculas)
         df.columns = df.columns.str.strip().str.upper()
 
-        # Renombrar columnas al nombre interno
         df = df.rename(columns={
             'N° ORDEN DE SERVICIO': 'orden',
             'FECHA': 'fecha',
@@ -159,13 +157,13 @@ if datos_excel is not None:
         if 'ITEM' in df.columns:
             df = df.drop(columns=['ITEM'])
 
-        # Añadir columna 'tipo'
+        df['orden'] = df['orden'].astype(str).str.strip()  # <- Forzar texto y quitar espacios
+
         df['tipo'] = tipo_seleccionado
 
         st.write("### Vista previa de datos a importar:")
         st.dataframe(df.head())
 
-        # Insertar en base de datos
         conn = sqlite3.connect(archivo_db)
         c = conn.cursor()
 
@@ -174,17 +172,17 @@ if datos_excel is not None:
                 INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado, tipo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                row.get('orden', ''),
-                row.get('fecha', ''),
-                row.get('certificado', ''),
-                row.get('equipo', ''),
-                row.get('cliente', ''),
-                row.get('sede', ''),
-                row.get('conformidad', ''),
-                row.get('ejecutado', ''),
-                row.get('firmado', ''),
-                row.get('avalado', ''),
-                row.get('tipo', '')
+                row['orden'],
+                row['fecha'],
+                row['certificado'],
+                row['equipo'],
+                row['cliente'],
+                row['sede'],
+                row['conformidad'],
+                row['ejecutado'],
+                row['firmado'],
+                row['avalado'],
+                row['tipo']
             ))
         conn.commit()
         conn.close()
