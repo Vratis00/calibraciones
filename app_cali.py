@@ -136,6 +136,7 @@ if datos_excel is not None:
 
     if st.button("Cargar Datos desde Excel"):
         df = pd.read_excel(datos_excel)
+        df = df.fillna('').astype(str)  # <- Esto convierte NaN a '' y todo a string
 
         # Normalizar nombres de columnas (eliminar espacios dobles y convertir a mayúsculas)
         df.columns = df.columns.str.strip().str.upper()
