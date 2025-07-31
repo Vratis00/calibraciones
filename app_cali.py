@@ -3,6 +3,8 @@ import sqlite3
 import os
 from datetime import date
 import pandas as pd
+import io
+from fpdf import FPDF
 
 archivo_db = 'calibraciones.db'
 
@@ -139,10 +141,8 @@ if datos_excel is not None:
 
         st.write("Encabezados leídos:", df.columns.tolist())
 
-        # Normalizar encabezados
         df.columns = df.columns.str.strip().str.upper()
 
-        # Crear diccionario de alias de columnas
         columnas_alias = {}
         for col in df.columns:
             if 'ORDEN' in col:
@@ -167,7 +167,6 @@ if datos_excel is not None:
                 columnas_alias[col] = 'avalado'
 
         df = df.rename(columns=columnas_alias)
-
         df['tipo'] = tipo_seleccionado
 
         df['orden'] = df['orden'].astype(str).str.strip()
@@ -207,7 +206,6 @@ if st.button("🗑️ Borrar Todo"):
     st.session_state.equipos = []
     st.success("Datos eliminados y base de datos reiniciada.")
 
-# BOTÓN DE DESCARGA DE BASE DE DATOS
 if os.path.exists(archivo_db):
     with open(archivo_db, "rb") as file:
         st.download_button(
@@ -217,12 +215,58 @@ if os.path.exists(archivo_db):
             mime="application/x-sqlite3"
         )
 
-# MOSTRAR REGISTROS DE LA BASE DE DATOS EN TABLA
-if st.button("📊 Visualizar Base de Datos"):
+# FILTRAR Y VISUALIZAR REGISTROS
+st.markdown("---")
+st.subheader("📊 Filtro de Base de Datos")
+
+with st.expander("Filtrar Registros"):
+    cliente_filtro = st.text_input("Filtrar por Cliente")
+    tipo_filtro = st.selectbox("Filtrar por Tipo", ["Todos", "Balanza", "Esfigmomanómetro"])
+    fecha_filtro = st.date_input("Filtrar por Fecha (opcional)", value=None)
+
+if st.button("Aplicar Filtro y Mostrar"):
     conn = sqlite3.connect(archivo_db)
-    df = pd.read_sql_query("SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO POR', avalado AS 'AVALADO POR', tipo AS TIPO FROM calibraciones", conn)
+    query = "SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO POR', avalado AS 'AVALADO POR', tipo AS TIPO FROM calibraciones WHERE 1=1"
+
+    if cliente_filtro:
+        query += f" AND cliente LIKE '%{cliente_filtro}%'"
+    if tipo_filtro != "Todos":
+        query += f" AND tipo = '{tipo_filtro}'"
+    if fecha_filtro:
+        query += f" AND fecha = '{fecha_filtro}'"
+
+    df = pd.read_sql_query(query, conn)
     conn.close()
 
     st.dataframe(df)
-    st.success("Registros cargados exitosamente")
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Filtrado')
+        writer.save()
+        st.download_button(
+            label="📥 Descargar Excel Filtrado",
+            data=buffer,
+            file_name="reporte_filtrado.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    # Exportar PDF Simple
+    if st.button("📄 Exportar PDF Resumen"):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="Reporte de Calibraciones", ln=True, align='C')
+
+        for index, row in df.iterrows():
+            pdf.cell(0, 10, txt=f"Certificado: {row['N° CERTIFICADO']} - Equipo: {row['EQUIPO']} - Cliente: {row['CLIENTE']}", ln=True)
+
+        pdf_buffer = io.BytesIO()
+        pdf.output(pdf_buffer)
+        st.download_button(
+            label="📥 Descargar PDF Resumen",
+            data=pdf_buffer.getvalue(),
+            file_name="reporte.pdf",
+            mime="application/pdf"
+        )
 
