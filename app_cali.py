@@ -139,23 +139,22 @@ if datos_excel is not None:
 
         # Normalizar nombres de columnas
         df.columns = df.columns.str.strip().str.upper()
-        
-        # Mapeo de nombres esperados
+
+        # Renombrar columnas al nombre interno (alias)
         df = df.rename(columns={
-            'ITEM': 'ITEM',
-            'N° ORDEN DE SERVICIO': 'ORDEN',
-            'FECHA': 'FECHA',
-            'N° CERTIFICADO': 'CERTIFICADO',
-            'EQUIPO': 'EQUIPO',
-            'CLIENTE': 'CLIENTE',
-            'SEDE O SERVICIO': 'SEDE',
-            'CONFORMIDAD': 'CONFORMIDAD',
-            'EJECUTADO POR': 'EJECUTADO',
-            'FIRMADO  POR': 'FIRMADO',
-            'AVALADO POR': 'AVALADO'
+            'N° ORDEN DE SERVICIO': 'orden',
+            'FECHA': 'fecha',
+            'N° CERTIFICADO': 'certificado',
+            'EQUIPO': 'equipo',
+            'CLIENTE': 'cliente',
+            'SEDE O SERVICIO': 'sede',
+            'CONFORMIDAD': 'conformidad',
+            'EJECUTADO POR': 'ejecutado',
+            'FIRMADO  POR': 'firmado',
+            'AVALADO POR': 'avalado'
         })
 
-        # Añadimos la columna tipo
+        # Añadir columna 'tipo'
         df['tipo'] = tipo_seleccionado
 
         conn = sqlite3.connect(archivo_db)
@@ -166,17 +165,17 @@ if datos_excel is not None:
                 INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado, tipo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                row['ORDEN'],
-                row['FECHA'],
-                row['CERTIFICADO'],
-                row['EQUIPO'],
-                row['CLIENTE'],
-                row['SEDE'],
-                row['CONFORMIDAD'],
-                row['EJECUTADO'],
-                row['FIRMADO'],
-                row['AVALADO'],
-                row['tipo']
+                row.get('orden', ''),
+                row.get('fecha', ''),
+                row.get('certificado', ''),
+                row.get('equipo', ''),
+                row.get('cliente', ''),
+                row.get('sede', ''),
+                row.get('conformidad', ''),
+                row.get('ejecutado', ''),
+                row.get('firmado', ''),
+                row.get('avalado', ''),
+                row.get('tipo', '')
             ))
         conn.commit()
         conn.close()
@@ -209,3 +208,4 @@ if st.button("📊 Visualizar Base de Datos"):
 
     st.dataframe(df)
     st.success("Registros cargados exitosamente")
+
