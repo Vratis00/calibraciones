@@ -136,33 +136,43 @@ if datos_excel is not None:
 
     if st.button("Cargar Datos desde Excel"):
         df = pd.read_excel(datos_excel, index_col=None)
-        df = df.fillna('').astype(str)
 
+        st.write("Encabezados leídos:", df.columns.tolist())
+
+        # Normalizar encabezados
         df.columns = df.columns.str.strip().str.upper()
 
-        df = df.rename(columns={
-            'N° ORDEN DE SERVICIO': 'orden',
-            'FECHA': 'fecha',
-            'N°CERTIFICADO': 'certificado',
-            'EQUIPO': 'equipo',
-            'CLIENTE': 'cliente',
-            'SEDE O SERVICIO': 'sede',
-            'CONFORMIDAD': 'conformidad',
-            'EJECUTADO POR': 'ejecutado',
-            'FIRMADO POR': 'firmado',
-            'AVALADO POR': 'avalado'
-        })
+        # Crear diccionario de alias de columnas
+        columnas_alias = {}
+        for col in df.columns:
+            if 'ORDEN' in col:
+                columnas_alias[col] = 'orden'
+            elif 'FECHA' in col:
+                columnas_alias[col] = 'fecha'
+            elif 'CERTIFICADO' in col:
+                columnas_alias[col] = 'certificado'
+            elif 'EQUIPO' in col:
+                columnas_alias[col] = 'equipo'
+            elif 'CLIENTE' in col:
+                columnas_alias[col] = 'cliente'
+            elif 'SEDE' in col:
+                columnas_alias[col] = 'sede'
+            elif 'CONFORMIDAD' in col:
+                columnas_alias[col] = 'conformidad'
+            elif 'EJECUTADO' in col:
+                columnas_alias[col] = 'ejecutado'
+            elif 'FIRMADO' in col:
+                columnas_alias[col] = 'firmado'
+            elif 'AVALADO' in col:
+                columnas_alias[col] = 'avalado'
 
-        # Eliminar columna ITEM si existe
-        if 'ITEM' in df.columns:
-            df = df.drop(columns=['ITEM'])
-
-        df['orden'] = df['orden'].astype(str).str.strip()  # <- Forzar texto y quitar espacios
+        df = df.rename(columns=columnas_alias)
 
         df['tipo'] = tipo_seleccionado
 
-        st.write("### Vista previa de datos a importar:")
-        st.dataframe(df.head())
+        df['orden'] = df['orden'].astype(str).str.strip()
+        df['fecha'] = df['fecha'].astype(str).str.strip()
+        df['certificado'] = df['certificado'].astype(str).str.strip()
 
         conn = sqlite3.connect(archivo_db)
         c = conn.cursor()
@@ -172,17 +182,17 @@ if datos_excel is not None:
                 INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado, tipo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                row['orden'],
-                row['fecha'],
-                row['certificado'],
-                row['equipo'],
-                row['cliente'],
-                row['sede'],
-                row['conformidad'],
-                row['ejecutado'],
-                row['firmado'],
-                row['avalado'],
-                row['tipo']
+                row.get('orden', ''),
+                row.get('fecha', ''),
+                row.get('certificado', ''),
+                row.get('equipo', ''),
+                row.get('cliente', ''),
+                row.get('sede', ''),
+                row.get('conformidad', ''),
+                row.get('ejecutado', ''),
+                row.get('firmado', ''),
+                row.get('avalado', ''),
+                row.get('tipo', '')
             ))
         conn.commit()
         conn.close()
@@ -210,7 +220,7 @@ if os.path.exists(archivo_db):
 # MOSTRAR REGISTROS DE LA BASE DE DATOS EN TABLA
 if st.button("📊 Visualizar Base de Datos"):
     conn = sqlite3.connect(archivo_db)
-    df = pd.read_sql_query("SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO  POR', avalado AS 'AVALADO POR', tipo AS TIPO FROM calibraciones", conn)
+    df = pd.read_sql_query("SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO POR', avalado AS 'AVALADO POR', tipo AS TIPO FROM calibraciones", conn)
     conn.close()
 
     st.dataframe(df)
