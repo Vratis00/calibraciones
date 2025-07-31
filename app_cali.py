@@ -14,8 +14,8 @@ def inicializar_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     orden TEXT,
                     fecha TEXT,
-                    equipo TEXT,
                     certificado TEXT,
+                    equipo TEXT,
                     cliente TEXT,
                     sede TEXT,
                     conformidad TEXT,
@@ -102,13 +102,13 @@ if st.button("Guardar Datos en Base de Datos"):
             for i in range(cantidad):
                 cert_num = f"{letra}-25-{consecutivos[letra]}"
                 c.execute("""
-                    INSERT INTO calibraciones (orden, fecha, equipo, certificado, cliente, sede, conformidad, ejecutado, firmado, avalado)
+                    INSERT INTO calibraciones (orden, fecha, certificado, equipo, cliente, sede, conformidad, ejecutado, firmado, avalado)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     orden,
                     fecha.strftime('%Y-%m-%d'),
-                    equipo,
                     cert_num,
+                    equipo,
                     cliente,
                     sede if not modo_asignacion else '',
                     conformidad if not modo_asignacion else '',
@@ -146,9 +146,10 @@ if os.path.exists(archivo_db):
 # MOSTRAR REGISTROS DE LA BASE DE DATOS EN TABLA
 if st.button("📊 Visualizar Base de Datos"):
     conn = sqlite3.connect(archivo_db)
-    df = pd.read_sql_query("SELECT * FROM calibraciones", conn)
+    df = pd.read_sql_query("SELECT id AS ITEM, orden AS 'N° ORDEN DE SERVICIO', fecha AS FECHA, certificado AS 'N° CERTIFICADO', equipo AS EQUIPO, cliente AS CLIENTE, sede AS 'SEDE O SERVICIO', conformidad AS CONFORMIDAD, ejecutado AS 'EJECUTADO POR', firmado AS 'FIRMADO  POR', avalado AS 'AVALADO POR' FROM calibraciones", conn)
     conn.close()
 
     st.dataframe(df)
     st.success("Registros cargados exitosamente")
+
 
