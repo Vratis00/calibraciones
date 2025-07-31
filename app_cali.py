@@ -137,26 +137,34 @@ if datos_excel is not None:
     if st.button("Cargar Datos desde Excel"):
         df = pd.read_excel(datos_excel)
 
-        # Normalizar nombres de columnas
+        # Normalizar nombres de columnas (eliminar espacios dobles y convertir a mayúsculas)
         df.columns = df.columns.str.strip().str.upper()
 
-        # Renombrar columnas al nombre interno (alias)
+        # Renombrar columnas al nombre interno
         df = df.rename(columns={
             'N° ORDEN DE SERVICIO': 'orden',
             'FECHA': 'fecha',
-            'N° CERTIFICADO': 'certificado',
+            'N°CERTIFICADO': 'certificado',
             'EQUIPO': 'equipo',
             'CLIENTE': 'cliente',
             'SEDE O SERVICIO': 'sede',
             'CONFORMIDAD': 'conformidad',
             'EJECUTADO POR': 'ejecutado',
-            'FIRMADO  POR': 'firmado',
+            'FIRMADO POR': 'firmado',
             'AVALADO POR': 'avalado'
         })
+
+        # Eliminar columna ITEM si existe
+        if 'ITEM' in df.columns:
+            df = df.drop(columns=['ITEM'])
 
         # Añadir columna 'tipo'
         df['tipo'] = tipo_seleccionado
 
+        st.write("### Vista previa de datos a importar:")
+        st.dataframe(df.head())
+
+        # Insertar en base de datos
         conn = sqlite3.connect(archivo_db)
         c = conn.cursor()
 
